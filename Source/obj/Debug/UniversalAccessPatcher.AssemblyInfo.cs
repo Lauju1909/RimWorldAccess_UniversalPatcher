@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("UniversalAccessPatcher")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c6d85feff97ceff777f144c806f5405b488e9509")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d9391cdd50f658d1062f37a0b3c784a34a03becb")]
 [assembly: System.Reflection.AssemblyProductAttribute("UniversalAccessPatcher")]
 [assembly: System.Reflection.AssemblyTitleAttribute("UniversalAccessPatcher")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

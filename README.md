@@ -10,6 +10,8 @@ Das führt dazu, dass Menüs anderer Mods barrierefrei werden, ohne dass jede Mo
 - Unterstützung für Checkboxen, Textfelder und Schieberegler in Mod-Menüs.
 - Volle Barrierefreiheit für Dropdown-Menüs (FloatMenus).
 - Verbesserte Kompatibilität für Menüs diverser Drittanbieter-Mods.
+- Neues barrierefreies Entwicklermenü: Drücke `Shift+F11`, um es zu öffnen.
+- Neues barrierefreies Mod-Einstellungsmenü: Drücke `Strg+F11`, um es zu öffnen.
 
 *Installation:*
 1. Kompiliere das `Source` Verzeichnis zu einer DLL (benötigt RimWorld, Harmony und RimWorldAccess Assemblies).
@@ -26,6 +28,8 @@ This makes menus from other mods accessible without having to patch each mod ind
 - Support for checkboxes, text fields, and sliders in mod menus.
 - Full accessibility for dropdown menus (FloatMenus).
 - Improved compatibility for menus of various third-party mods.
+- New accessible Developer Menu: Press `Shift+F11` to open it.
+- New accessible Mod Settings Menu: Press `Ctrl+F11` to open it.
 
 *Installation:*
 1. Compile the `Source` directory to a DLL (requires RimWorld, Harmony, and RimWorldAccess assemblies).
