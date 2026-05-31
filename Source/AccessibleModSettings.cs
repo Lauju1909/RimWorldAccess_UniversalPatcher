@@ -23,6 +23,8 @@ namespace RimWorldAccess_UniversalPatcher
             this.absorbInputAroundWindow = true;
             this.doWindowBackground = true;
             this.draggable = true;
+            this.closeOnAccept = false;
+
 
             PopulateMods();
 
@@ -130,6 +132,7 @@ namespace RimWorldAccess_UniversalPatcher
             this.absorbInputAroundWindow = true;
             this.doWindowBackground = true;
             this.draggable = true;
+            this.closeOnAccept = false;
         }
 
         private void SpeakCurrentElement()
