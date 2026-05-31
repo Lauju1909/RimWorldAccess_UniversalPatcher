@@ -281,15 +281,31 @@ namespace RimWorldAccess_UniversalPatcher
             {
                 if (Find.WindowStack != null)
                 {
+                    bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                    bool ctrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+
                     // Prüfe ob bereits ein Zugänglichkeitsmenü offen ist
                     // Check if an accessibility menu is already open
                     foreach (Window w in Find.WindowStack.Windows)
                     {
-                        if (w is UniversalAccessMenu)
+                        if (w is UniversalAccessMenu || w is AccessibleDevMenu || w is AccessibleModSettings || w is AccessibleModSettingsDetail)
                         {
                             w.Close();
                             return;
                         }
+                    }
+
+                    if (shift)
+                    {
+                        BumpSound.PlayOpen();
+                        Find.WindowStack.Add(new AccessibleDevMenu());
+                        return;
+                    }
+                    if (ctrl)
+                    {
+                        BumpSound.PlayOpen();
+                        Find.WindowStack.Add(new AccessibleModSettings());
+                        return;
                     }
 
                     List<UIElement> validElements = new List<UIElement>();
