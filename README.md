@@ -35,3 +35,6 @@ This makes menus from other mods accessible without having to patch each mod ind
 1. Compile the `Source` directory to a DLL (requires RimWorld, Harmony, and RimWorldAccess assemblies).
 2. Place the compiled DLL in the `Assemblies/` folder.
 3. Enable the mod in the game (ensure it loads AFTER Harmony and RimWorld Access).
+
+- 100% Zwangslokalisierung (Force-Translation): Jeglicher Text (inkl. Tooltips, Mod-Einstellungen und Dev-Befehle) wird Ober die TranslationEngine in Echtzeit asynchron auf Deutsch Obersetzt, bevor Tolk ihn vorliest.
+- 100% Force-Translation: Every text (including Tooltips, Mod Settings, and Dev Commands) is automatically translated to German via the TranslationEngine asynchronously before Tolk reads it.

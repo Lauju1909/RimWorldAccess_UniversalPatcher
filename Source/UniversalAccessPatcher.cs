@@ -232,10 +232,14 @@ namespace RimWorldAccess_UniversalPatcher
     {
         public string Text;
         public Rect Rect;
-        public string Type; // "Button", "Label", "Checkbox", "TextField", "Slider", "FloatMenuOption"
+        public string Type; // "Button", "Label", "Checkbox", "TextField", "Slider", "FloatMenuOption", "IntRange", "ColorPicker"
         public bool IsChecked;
         public float CurrentValue;
         public string TextValue;
+        public int IntMin;
+        public int IntMax;
+        public FloatMenuOption MenuOption;
+        public Color CurrentColor;
     }
 
     // =========================================================================
@@ -246,6 +250,8 @@ namespace RimWorldAccess_UniversalPatcher
     {
         public static List<UIElement> ElementsCurrentFrame = new List<UIElement>();
         public static List<UIElement> ElementsLastFrame = new List<UIElement>();
+        public static Dictionary<Rect, string> TooltipsCurrentFrame = new Dictionary<Rect, string>();
+        public static Dictionary<Rect, string> TooltipsLastFrame = new Dictionary<Rect, string>();
         public static UIElement? PendingClickTarget = null;
         public static UIElement? PendingSliderTarget = null;
     }
@@ -263,6 +269,22 @@ namespace RimWorldAccess_UniversalPatcher
             TranslationEngine.Init();
             var harmony = new Harmony("com.tachyon.universalaccesspatcher");
             harmony.PatchAll();
+
+            try
+            {
+                var colorSelectorMethod = AccessTools.Method(typeof(Widgets), "ColorSelector");
+                if (colorSelectorMethod != null)
+                {
+                    var prefix = new HarmonyMethod(typeof(Widgets_ColorSelector_Patch), "Prefix");
+                    var postfix = new HarmonyMethod(typeof(Widgets_ColorSelector_Patch), "Postfix");
+                    harmony.Patch(colorSelectorMethod, prefix: prefix, postfix: postfix);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("[UniversalAccessPatcher] Could not patch ColorSelector: " + ex.Message);
+            }
+
             Log.Message("[UniversalAccessPatcher] All patches applied. Press F11 to open the accessibility menu.");
             Log.Message("[UniversalAccessPatcher] Navigation: Arrow Keys = move, Enter = activate, Escape = close.");
         }
@@ -348,6 +370,8 @@ namespace RimWorldAccess_UniversalPatcher
             {
                 UniversalAccessState.ElementsLastFrame = new List<UIElement>(UniversalAccessState.ElementsCurrentFrame);
                 UniversalAccessState.ElementsCurrentFrame.Clear();
+                UniversalAccessState.TooltipsLastFrame = new Dictionary<Rect, string>(UniversalAccessState.TooltipsCurrentFrame);
+                UniversalAccessState.TooltipsCurrentFrame.Clear();
             }
         }
     }
@@ -565,9 +589,161 @@ namespace RimWorldAccess_UniversalPatcher
                 {
                     Text = TranslationEngine.Translate(__instance.Label),
                     Rect = rect,
-                    Type = "FloatMenuOption"
+                    Type = "FloatMenuOption",
+                    MenuOption = __instance
                 });
             }
+        }
+    }
+
+    // =========================================================================
+    // TOOLTIP PATCH - Fängt Tooltips ab und übersetzt sie
+    // =========================================================================
+    [HarmonyPatch(typeof(TooltipHandler), "TipRegion", new Type[] { typeof(Rect), typeof(TipSignal) })]
+    public static class TooltipHandler_TipRegion_Patch
+    {
+        public static void Prefix(Rect rect, ref TipSignal tip)
+        {
+            if (Event.current != null && Event.current.type == EventType.Repaint)
+            {
+                string txt = tip.text;
+                if (txt == null && tip.textGetter != null) {
+                    try { txt = tip.textGetter(); } catch { }
+                }
+                if (!string.IsNullOrEmpty(txt)) {
+                    string translated = TranslationEngine.Translate(txt);
+                    UniversalAccessState.TooltipsCurrentFrame[rect] = translated;
+                    tip.text = translated; // Also translate visually
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // INTRANGE PATCH - Fängt Widgets.IntRange ab
+    // =========================================================================
+    [HarmonyPatch(typeof(Widgets), "IntRange")]
+    public static class Widgets_IntRange_Patch
+    {
+        public static bool Prefix(Rect rect, int id, ref IntRange range, int min, int max, string label, int minWidth)
+        {
+            if (UniversalAccessState.PendingSliderTarget.HasValue)
+            {
+                var target = UniversalAccessState.PendingSliderTarget.Value;
+                if (target.Type == "IntRange" && target.Rect == rect)
+                {
+                    range.min = target.IntMin;
+                    range.max = target.IntMax;
+                    UniversalAccessState.PendingSliderTarget = null;
+                }
+            }
+            return true;
+        }
+
+        public static void Postfix(Rect rect, int id, ref IntRange range, int min, int max, string label, int minWidth)
+        {
+            if (Event.current != null && Event.current.type == EventType.Repaint)
+            {
+                UniversalAccessState.ElementsCurrentFrame.Add(new UIElement
+                {
+                    Text = string.IsNullOrEmpty(label) ? "Bereich" : TranslationEngine.Translate(label),
+                    Rect = rect,
+                    Type = "IntRange",
+                    IntMin = range.min,
+                    IntMax = range.max
+                });
+            }
+        }
+    }
+
+    // =========================================================================
+    // COLORSELECTOR PATCH - Fängt Widgets.ColorSelector ab
+    // =========================================================================
+    public static class Widgets_ColorSelector_Patch
+    {
+        public static bool Prefix(Rect rect, ref Color color, List<Color> colors)
+        {
+            if (UniversalAccessState.PendingClickTarget.HasValue)
+            {
+                var target = UniversalAccessState.PendingClickTarget.Value;
+                if (target.Type == "ColorSelector" && target.Rect == rect)
+                {
+                    int idx = colors.IndexOf(color);
+                    if (idx >= 0 && idx < colors.Count - 1) color = colors[idx + 1];
+                    else if (colors.Count > 0) color = colors[0];
+                    UniversalAccessState.PendingClickTarget = null;
+                }
+            }
+            return true;
+        }
+
+        public static void Postfix(Rect rect, Color color)
+        {
+            if (Event.current != null && Event.current.type == EventType.Repaint)
+            {
+                UniversalAccessState.ElementsCurrentFrame.Add(new UIElement
+                {
+                    Text = "Farbwähler",
+                    Rect = rect,
+                    Type = "ColorSelector",
+                    CurrentColor = color
+                });
+            }
+        }
+    }
+
+    // =========================================================================
+    // WINDOWSTACK ADD PATCH - Fängt FloatMenu ab
+    // =========================================================================
+    [HarmonyPatch(typeof(WindowStack), "Add")]
+    public static class WindowStack_Add_Patch
+    {
+        public static bool Prefix(Window window)
+        {
+            if (window == null) return true;
+
+            string typeName = window.GetType().Name;
+
+            if (typeName == "FloatMenu")
+            {
+                // Check if AccessibleModSettingsDetail or UniversalAccessMenu is open
+                bool isAccessibleActive = false;
+                foreach (Window w in Find.WindowStack.Windows)
+                {
+                    if (w is AccessibleModSettingsDetail || w is UniversalAccessMenu)
+                    {
+                        isAccessibleActive = true;
+                        break;
+                    }
+                }
+
+                if (isAccessibleActive)
+                {
+                    var optionsField = AccessTools.Field(window.GetType(), "options");
+                    if (optionsField != null)
+                    {
+                        var options = optionsField.GetValue(window) as List<FloatMenuOption>;
+                        if (options != null)
+                        {
+                            List<UIElement> els = new List<UIElement>();
+                            foreach (var opt in options)
+                            {
+                                els.Add(new UIElement { Type = "FloatMenuOption", Text = opt.Label, Rect = new Rect(), MenuOption = opt });
+                            }
+                            // Close the window from which it was opened to prevent overlapping, but for ModSettings we want it on top
+                            Find.WindowStack.Add(new UniversalAccessMenu(els));
+                            
+                            TolkHelper.Speak(L10n.Get("Dropdown Menü geöffnet.", "Dropdown menu opened."), SpeechPriority.High);
+                            return false; // Prevent original FloatMenu from opening
+                        }
+                    }
+                }
+            }
+            else if (typeName.Contains("ColourPicker") || typeName.Contains("ColorPicker"))
+            {
+                TolkHelper.Speak(L10n.Get("Farbwähler Dialog geöffnet. Bitte navigieren.", "Color picker dialog opened. Please navigate."), SpeechPriority.High);
+            }
+            return true;
         }
     }
 
@@ -655,6 +831,21 @@ namespace RimWorldAccess_UniversalPatcher
                 string.Format("{0}. {1}. Element {2} von {3}.", el.Text, typeName, selectedIndex + 1, elements.Count),
                 string.Format("{0}. {1}. Item {2} of {3}.", el.Text, typeName, selectedIndex + 1, elements.Count)
             );
+
+            // Check for tooltips
+            string tooltip = "";
+            foreach (var kvp in UniversalAccessState.TooltipsLastFrame)
+            {
+                if (kvp.Key.Overlaps(el.Rect) || el.Rect.Overlaps(kvp.Key))
+                {
+                    tooltip = kvp.Value;
+                    break;
+                }
+            }
+            if (!string.IsNullOrEmpty(tooltip))
+            {
+                msg += " " + L10n.Get("Tooltip: " + tooltip, "Tooltip: " + tooltip);
+            }
 
             TolkHelper.Speak(msg, SpeechPriority.Normal);
         }
@@ -759,6 +950,16 @@ namespace RimWorldAccess_UniversalPatcher
                             UniversalAccessState.PendingSliderTarget = el;
                             TolkHelper.Speak(L10n.Get("Wert verringert auf " + Math.Round(el.CurrentValue, 2), "Value decreased to " + Math.Round(el.CurrentValue, 2)), SpeechPriority.High);
                         }
+                        else if (el.Type == "IntRange")
+                        {
+                            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                                el.IntMax -= 1;
+                            else
+                                el.IntMin -= 1;
+                            elements[selectedIndex] = el;
+                            UniversalAccessState.PendingSliderTarget = el;
+                            TolkHelper.Speak(L10n.Get($"Minimum {el.IntMin}, Maximum {el.IntMax}", $"Minimum {el.IntMin}, Maximum {el.IntMax}"), SpeechPriority.High);
+                        }
                     }
                     Event.current.Use();
                 }
@@ -775,6 +976,16 @@ namespace RimWorldAccess_UniversalPatcher
                             UniversalAccessState.PendingSliderTarget = el;
                             TolkHelper.Speak(L10n.Get("Wert erhöht auf " + Math.Round(el.CurrentValue, 2), "Value increased to " + Math.Round(el.CurrentValue, 2)), SpeechPriority.High);
                         }
+                        else if (el.Type == "IntRange")
+                        {
+                            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                                el.IntMax += 1;
+                            else
+                                el.IntMin += 1;
+                            elements[selectedIndex] = el;
+                            UniversalAccessState.PendingSliderTarget = el;
+                            TolkHelper.Speak(L10n.Get($"Minimum {el.IntMin}, Maximum {el.IntMax}", $"Minimum {el.IntMin}, Maximum {el.IntMax}"), SpeechPriority.High);
+                        }
                     }
                     Event.current.Use();
                 }
@@ -784,7 +995,7 @@ namespace RimWorldAccess_UniversalPatcher
                     if (elements.Count > 0)
                     {
                         var el = elements[selectedIndex];
-                        if (el.Type == "Button" || el.Type == "FloatMenuOption" || el.Type == "ButtonImage" || el.Type == "Checkbox" || el.Type == "TextField")
+                        if (el.Type == "Button" || el.Type == "FloatMenuOption" || el.Type == "ButtonImage" || el.Type == "Checkbox" || el.Type == "TextField" || el.Type == "ColorSelector")
                         {
                             BumpSound.PlaySelect();
                             string actionTextDe = el.Type == "Checkbox" ? (el.IsChecked ? "deaktiviert" : "aktiviert") : "ausgewählt";
@@ -793,14 +1004,26 @@ namespace RimWorldAccess_UniversalPatcher
                                 actionTextDe = "Eingabefeld fokussiert. Bitte tippen.";
                                 actionTextEn = "Text field focused. Please type.";
                             }
+                            else if (el.Type == "ColorSelector") {
+                                actionTextDe = "Nächste Farbe ausgewählt.";
+                                actionTextEn = "Next color selected.";
+                            }
                             TolkHelper.Speak(
                                 L10n.Get(
-                                    el.Type == "TextField" ? actionTextDe : string.Format("{0} wird {1}.", el.Text, actionTextDe),
-                                    el.Type == "TextField" ? actionTextEn : string.Format("{0} is {1}.", el.Text, actionTextEn)
+                                    (el.Type == "TextField" || el.Type == "ColorSelector") ? actionTextDe : string.Format("{0} wird {1}.", el.Text, actionTextDe),
+                                    (el.Type == "TextField" || el.Type == "ColorSelector") ? actionTextEn : string.Format("{0} is {1}.", el.Text, actionTextEn)
                                 ),
                                 SpeechPriority.High
                             );
-                            UniversalAccessState.PendingClickTarget = el;
+                            if (el.Type == "FloatMenuOption" && el.MenuOption != null)
+                            {
+                                if (!el.MenuOption.Disabled)
+                                    el.MenuOption.action?.Invoke();
+                            }
+                            else
+                            {
+                                UniversalAccessState.PendingClickTarget = el;
+                            }
                             this.Close();
                         }
                         else

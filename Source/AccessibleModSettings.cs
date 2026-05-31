@@ -51,8 +51,9 @@ namespace RimWorldAccess_UniversalPatcher
         {
             if (modsWithSettings.Count == 0) return;
             var mod = modsWithSettings[selectedIndex];
+            string translatedCategory = TranslationEngine.Translate(mod.SettingsCategory());
             string msg = L10n.Get(
-                $"{mod.SettingsCategory()}. Knopf. Element {selectedIndex + 1} von {modsWithSettings.Count}.",
+                $"{translatedCategory}. Knopf. Element {selectedIndex + 1} von {modsWithSettings.Count}.",
                 $"{mod.SettingsCategory()}. Button. Item {selectedIndex + 1} of {modsWithSettings.Count}."
             );
             TolkHelper.Speak(msg, RimWorldAccess.SpeechPriority.Normal);
@@ -100,8 +101,9 @@ namespace RimWorldAccess_UniversalPatcher
                     {
                         var mod = modsWithSettings[selectedIndex];
                         BumpSound.PlaySelect();
+                        string translatedCategory = TranslationEngine.Translate(mod.SettingsCategory());
                         TolkHelper.Speak(L10n.Get(
-                            $"{mod.SettingsCategory()} geöffnet.",
+                            $"{translatedCategory} geöffnet.",
                             $"{mod.SettingsCategory()} opened."
                         ), RimWorldAccess.SpeechPriority.High);
                         
@@ -178,8 +180,9 @@ namespace RimWorldAccess_UniversalPatcher
                 if (!initialized)
                 {
                     initialized = true;
+                    string translatedCategory = TranslationEngine.Translate(mod.SettingsCategory());
                     TolkHelper.Speak(L10n.Get(
-                        $"{mod.SettingsCategory()} geladen. {capturedElements.Count} Elemente gefunden.",
+                        $"{translatedCategory} geladen. {capturedElements.Count} Elemente gefunden.",
                         $"{mod.SettingsCategory()} loaded. {capturedElements.Count} elements found."
                     ), RimWorldAccess.SpeechPriority.High);
                     if (capturedElements.Count > 0)
@@ -249,6 +252,15 @@ namespace RimWorldAccess_UniversalPatcher
                             UniversalAccessState.PendingSliderTarget = el;
                             TolkHelper.Speak(L10n.Get("Wert verringert", "Value decreased"), RimWorldAccess.SpeechPriority.High);
                         }
+                        else if (el.Type == "IntRange")
+                        {
+                            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                                el.IntMax -= 1;
+                            else
+                                el.IntMin -= 1;
+                            UniversalAccessState.PendingSliderTarget = el;
+                            TolkHelper.Speak(L10n.Get($"Minimum {el.IntMin}, Maximum {el.IntMax}", $"Minimum {el.IntMin}, Maximum {el.IntMax}"), RimWorldAccess.SpeechPriority.High);
+                        }
                     }
                     Event.current.Use();
                 }
@@ -263,6 +275,15 @@ namespace RimWorldAccess_UniversalPatcher
                             UniversalAccessState.PendingSliderTarget = el;
                             TolkHelper.Speak(L10n.Get("Wert erhöht", "Value increased"), RimWorldAccess.SpeechPriority.High);
                         }
+                        else if (el.Type == "IntRange")
+                        {
+                            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                                el.IntMax += 1;
+                            else
+                                el.IntMin += 1;
+                            UniversalAccessState.PendingSliderTarget = el;
+                            TolkHelper.Speak(L10n.Get($"Minimum {el.IntMin}, Maximum {el.IntMax}", $"Minimum {el.IntMin}, Maximum {el.IntMax}"), RimWorldAccess.SpeechPriority.High);
+                        }
                     }
                     Event.current.Use();
                 }
@@ -271,11 +292,23 @@ namespace RimWorldAccess_UniversalPatcher
                     if (capturedElements.Count > 0)
                     {
                         var el = capturedElements[selectedIndex];
-                        if (el.Type == "Button" || el.Type == "Checkbox" || el.Type == "TextField")
+                        if (el.Type == "Button" || el.Type == "Checkbox" || el.Type == "TextField" || el.Type == "ColorSelector")
                         {
                             BumpSound.PlaySelect();
                             UniversalAccessState.PendingClickTarget = el;
-                            TolkHelper.Speak(L10n.Get("Ausgeführt.", "Executed."), RimWorldAccess.SpeechPriority.High);
+                            if (el.Type == "ColorSelector")
+                                TolkHelper.Speak(L10n.Get("Nächste Farbe ausgewählt.", "Next color selected."), RimWorldAccess.SpeechPriority.High);
+                            else
+                                TolkHelper.Speak(L10n.Get("Ausgeführt.", "Executed."), RimWorldAccess.SpeechPriority.High);
+                        }
+                        else if (el.Type == "FloatMenuOption")
+                        {
+                            BumpSound.PlaySelect();
+                            if (el.MenuOption != null && !el.MenuOption.Disabled)
+                            {
+                                el.MenuOption.action?.Invoke();
+                            }
+                            TolkHelper.Speak(L10n.Get("Ausgewählt.", "Selected."), RimWorldAccess.SpeechPriority.High);
                         }
                         else
                         {

@@ -41,7 +41,9 @@ namespace RimWorldAccess_UniversalPatcher
             public string Category;
             public string Name;
             public Action Action;
-            public string DisplayName => $"[{Category}] {Name}";
+            public string TranslatedCategory => TranslationEngine.Translate(Category);
+            public string TranslatedName => TranslationEngine.Translate(Name);
+            public string DisplayName => $"[{TranslatedCategory}] {TranslatedName}";
         }
 
         private void PopulateActions()
@@ -126,7 +128,7 @@ namespace RimWorldAccess_UniversalPatcher
                     var action = filteredActions[actionIndex];
                     string msg = L10n.Get(
                         $"{action.DisplayName}. Knopf. Element {selectedIndex} von {filteredActions.Count}.",
-                        $"{action.DisplayName}. Button. Item {selectedIndex} of {filteredActions.Count}."
+                        $"[{action.Category}] {action.Name}. Button. Item {selectedIndex} of {filteredActions.Count}."
                     );
                     TolkHelper.Speak(msg, RimWorldAccess.SpeechPriority.Normal);
                 }
@@ -182,7 +184,7 @@ namespace RimWorldAccess_UniversalPatcher
                         {
                             var action = filteredActions[actionIndex];
                             BumpSound.PlaySelect();
-                            TolkHelper.Speak(L10n.Get($"{action.Name} ausgeführt.", $"{action.Name} executed."), RimWorldAccess.SpeechPriority.High);
+                            TolkHelper.Speak(L10n.Get($"{action.TranslatedName} ausgeführt.", $"{action.Name} executed."), RimWorldAccess.SpeechPriority.High);
                             action.Action?.Invoke();
                             this.Close();
                         }
