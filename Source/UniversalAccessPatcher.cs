@@ -200,13 +200,27 @@ namespace RimWorldAccess_UniversalPatcher
                 {
                     wc.Encoding = System.Text.Encoding.UTF8;
                     string json = wc.DownloadString(url);
-                    int start = json.IndexOf("[\"") + 2;
-                    int end = json.IndexOf("\",\"", start);
-                    if (start > 1 && end > start)
+                    string de = "";
+                    var matches = System.Text.RegularExpressions.Regex.Matches(json, @"\[\""(.*?)\""\,\""(.*?)\""\,");
+                    foreach (System.Text.RegularExpressions.Match m in matches)
                     {
-                        string de = json.Substring(start, end - start);
+                        de += m.Groups[1].Value;
+                    }
+
+                    if (string.IsNullOrEmpty(de))
+                    {
+                        int start = json.IndexOf("[\"") + 2;
+                        int end = json.IndexOf("\",\"", start);
+                        if (start > 1 && end > start)
+                        {
+                            de = json.Substring(start, end - start);
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(de))
+                    {
                         de = de.Replace("\\\"", "\"").Replace("\\n", "\n")
-                               .Replace("\\u003c", "<").Replace("\\u003e", ">");
+                               .Replace("\\u003c", "<").Replace("\\u003e", ">").Replace("\\u0026", "&");
 
                         lock (cache)
                         {
@@ -452,15 +466,11 @@ namespace RimWorldAccess_UniversalPatcher
             if (UniversalAccessState.PendingClickTarget.HasValue)
             {
                 var target = UniversalAccessState.PendingClickTarget.Value;
-                if (target.Type == "Checkbox" && target.Text == TranslationEngine.Translate(label) && target.Rect == rect)
+                string translatedLabel = string.IsNullOrEmpty(label) ? "Checkbox" : TranslationEngine.Translate(label);
+                if (target.Type == "Checkbox" && target.Text == translatedLabel && target.Rect == rect)
                 {
                     UniversalAccessState.PendingClickTarget = null;
-                    if (Event.current != null)
-                    {
-                        Event.current.type = EventType.MouseDown;
-                        Event.current.button = 0;
-                        Event.current.mousePosition = rect.center;
-                    }
+                    checkOn = !checkOn;
                 }
             }
             return true;
@@ -522,7 +532,7 @@ namespace RimWorldAccess_UniversalPatcher
     [HarmonyPatch(typeof(Widgets), "HorizontalSlider", new Type[] { typeof(Rect), typeof(float), typeof(float), typeof(float), typeof(bool), typeof(string), typeof(string), typeof(string), typeof(float) })]
     public static class Widgets_HorizontalSlider_Patch
     {
-        public static bool Prefix(Rect rect, ref float value, float leftValue, float rightValue, string label)
+        public static bool Prefix(Rect rect, float value, float leftValue, float rightValue, string label, ref float __result)
         {
             if (UniversalAccessState.PendingSliderTarget.HasValue)
             {
@@ -530,14 +540,8 @@ namespace RimWorldAccess_UniversalPatcher
                 if (target.Type == "Slider" && target.Rect == rect)
                 {
                     UniversalAccessState.PendingSliderTarget = null;
-                    if (Event.current != null)
-                    {
-                        Event.current.type = EventType.MouseDown;
-                        Event.current.button = 0;
-                        float range = rightValue - leftValue;
-                        float pct = range == 0 ? 0 : (target.CurrentValue - leftValue) / range;
-                        Event.current.mousePosition = new Vector2(rect.x + (pct * rect.width), rect.center.y);
-                    }
+                    __result = target.CurrentValue;
+                    return false;
                 }
             }
             return true;
