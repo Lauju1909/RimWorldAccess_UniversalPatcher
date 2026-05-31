@@ -7,3 +7,4 @@ C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_Unive
 C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_UniversalPatcher\Assemblies\UniversalAccessPatcher.pdb
 C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_UniversalPatcher\Source\obj\Debug\UniversalAccessPatcher.dll
 C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_UniversalPatcher\Source\obj\Debug\UniversalAccessPatcher.pdb
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_UniversalPatcher\Source\obj\Debug\UniversalAccessPatcher.sourcelink.json

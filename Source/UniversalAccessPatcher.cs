@@ -248,9 +248,6 @@ namespace RimWorldAccess_UniversalPatcher
         public static List<UIElement> ElementsLastFrame = new List<UIElement>();
         public static UIElement? PendingClickTarget = null;
         public static UIElement? PendingSliderTarget = null;
-        public static UIElement? PendingTextTarget = null;
-        public static bool IsTypingMode = false;
-        public static string TypingModeText = "";
     }
 
     // =========================================================================
@@ -418,8 +415,12 @@ namespace RimWorldAccess_UniversalPatcher
                 if (target.Type == "Checkbox" && target.Text == TranslationEngine.Translate(label) && target.Rect == rect)
                 {
                     UniversalAccessState.PendingClickTarget = null;
-                    checkOn = !checkOn;
-                    return true;
+                    if (Event.current != null)
+                    {
+                        Event.current.type = EventType.MouseDown;
+                        Event.current.button = 0;
+                        Event.current.mousePosition = rect.center;
+                    }
                 }
             }
             return true;
@@ -446,12 +447,18 @@ namespace RimWorldAccess_UniversalPatcher
         public static bool Prefix(Rect rect, ref string text, out string __state)
         {
             __state = text;
-            if (UniversalAccessState.PendingTextTarget.HasValue)
+            if (UniversalAccessState.PendingClickTarget.HasValue)
             {
-                var target = UniversalAccessState.PendingTextTarget.Value;
+                var target = UniversalAccessState.PendingClickTarget.Value;
                 if (target.Type == "TextField" && target.Rect == rect)
                 {
-                    text = UniversalAccessState.TypingModeText;
+                    UniversalAccessState.PendingClickTarget = null;
+                    if (Event.current != null)
+                    {
+                        Event.current.type = EventType.MouseDown;
+                        Event.current.button = 0;
+                        Event.current.mousePosition = rect.center;
+                    }
                 }
             }
             return true;
@@ -459,14 +466,6 @@ namespace RimWorldAccess_UniversalPatcher
 
         public static void Postfix(Rect rect, string text, string __state, ref string __result)
         {
-            if (UniversalAccessState.PendingTextTarget.HasValue)
-            {
-                var target = UniversalAccessState.PendingTextTarget.Value;
-                if (target.Type == "TextField" && target.Rect == rect)
-                {
-                    __result = UniversalAccessState.TypingModeText;
-                }
-            }
             if (Event.current != null && Event.current.type == EventType.Repaint)
             {
                 UniversalAccessState.ElementsCurrentFrame.Add(new UIElement
@@ -483,14 +482,22 @@ namespace RimWorldAccess_UniversalPatcher
     [HarmonyPatch(typeof(Widgets), "HorizontalSlider", new Type[] { typeof(Rect), typeof(float), typeof(float), typeof(float), typeof(bool), typeof(string), typeof(string), typeof(string), typeof(float) })]
     public static class Widgets_HorizontalSlider_Patch
     {
-        public static bool Prefix(Rect rect, ref float value, string label)
+        public static bool Prefix(Rect rect, ref float value, float leftValue, float rightValue, string label)
         {
             if (UniversalAccessState.PendingSliderTarget.HasValue)
             {
                 var target = UniversalAccessState.PendingSliderTarget.Value;
                 if (target.Type == "Slider" && target.Rect == rect)
                 {
-                    value = target.CurrentValue;
+                    UniversalAccessState.PendingSliderTarget = null;
+                    if (Event.current != null)
+                    {
+                        Event.current.type = EventType.MouseDown;
+                        Event.current.button = 0;
+                        float range = rightValue - leftValue;
+                        float pct = range == 0 ? 0 : (target.CurrentValue - leftValue) / range;
+                        Event.current.mousePosition = new Vector2(rect.x + (pct * rect.width), rect.center.y);
+                    }
                 }
             }
             return true;
@@ -498,14 +505,6 @@ namespace RimWorldAccess_UniversalPatcher
 
         public static void Postfix(Rect rect, ref float value, string label, ref float __result)
         {
-            if (UniversalAccessState.PendingSliderTarget.HasValue)
-            {
-                var target = UniversalAccessState.PendingSliderTarget.Value;
-                if (target.Type == "Slider" && target.Rect == rect)
-                {
-                    __result = target.CurrentValue;
-                }
-            }
             if (Event.current != null && Event.current.type == EventType.Repaint)
             {
                 UniversalAccessState.ElementsCurrentFrame.Add(new UIElement
@@ -661,40 +660,6 @@ namespace RimWorldAccess_UniversalPatcher
         public override void DoWindowContents(Rect inRect)
         {
             // ---------------------------------------------------------------
-            // SCHREIBMODUS / TYPING MODE
-            // ---------------------------------------------------------------
-            if (UniversalAccessState.IsTypingMode)
-            {
-                if (Event.current != null && Event.current.type == EventType.KeyDown)
-                {
-                    if (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter || Event.current.keyCode == KeyCode.Escape)
-                    {
-                        UniversalAccessState.IsTypingMode = false;
-                        UniversalAccessState.PendingTextTarget = null;
-                        TolkHelper.Speak(L10n.Get("Schreibmodus beendet.", "Typing mode ended."), SpeechPriority.High);
-                        Event.current.Use();
-                    }
-                    else if (Event.current.keyCode == KeyCode.Backspace && UniversalAccessState.TypingModeText.Length > 0)
-                    {
-                        UniversalAccessState.TypingModeText = UniversalAccessState.TypingModeText.Substring(0, UniversalAccessState.TypingModeText.Length - 1);
-                        Event.current.Use();
-                    }
-                }
-                else if (Event.current != null && Event.current.type == EventType.KeyDown)
-                {
-                    if (Event.current.character != '\0' && Event.current.character != '\n' && Event.current.character != '\r')
-                    {
-                        UniversalAccessState.TypingModeText += Event.current.character;
-                        Event.current.Use();
-                    }
-                }
-
-                // Zeige den Text zentriert an
-                Widgets.Label(inRect, "Schreibmodus aktiv: " + UniversalAccessState.TypingModeText);
-                return; // Beende hier, damit keine Navigation möglich ist
-            }
-
-            // ---------------------------------------------------------------
             // TASTATURVERARBEITUNG / KEYBOARD PROCESSING
             // ---------------------------------------------------------------
             if (Event.current != null && Event.current.type == EventType.KeyDown)
@@ -803,30 +768,24 @@ namespace RimWorldAccess_UniversalPatcher
                     if (elements.Count > 0)
                     {
                         var el = elements[selectedIndex];
-                        if (el.Type == "Button" || el.Type == "FloatMenuOption" || el.Type == "ButtonImage" || el.Type == "Checkbox")
+                        if (el.Type == "Button" || el.Type == "FloatMenuOption" || el.Type == "ButtonImage" || el.Type == "Checkbox" || el.Type == "TextField")
                         {
                             BumpSound.PlaySelect();
-                            string actionTextDe = el.Type == "Checkbox" ? (el.IsChecked ? "deaktiviert" : "aktiviert") : "gedrückt";
-                            string actionTextEn = el.Type == "Checkbox" ? (el.IsChecked ? "deactivated" : "activated") : "pressed";
+                            string actionTextDe = el.Type == "Checkbox" ? (el.IsChecked ? "deaktiviert" : "aktiviert") : "ausgewählt";
+                            string actionTextEn = el.Type == "Checkbox" ? (el.IsChecked ? "deactivated" : "activated") : "selected";
+                            if (el.Type == "TextField") {
+                                actionTextDe = "Eingabefeld fokussiert. Bitte tippen.";
+                                actionTextEn = "Text field focused. Please type.";
+                            }
                             TolkHelper.Speak(
                                 L10n.Get(
-                                    string.Format("{0} wird {1}.", el.Text, actionTextDe),
-                                    string.Format("{0} is {1}.", el.Text, actionTextEn)
+                                    el.Type == "TextField" ? actionTextDe : string.Format("{0} wird {1}.", el.Text, actionTextDe),
+                                    el.Type == "TextField" ? actionTextEn : string.Format("{0} is {1}.", el.Text, actionTextEn)
                                 ),
                                 SpeechPriority.High
                             );
                             UniversalAccessState.PendingClickTarget = el;
                             this.Close();
-                        }
-                        else if (el.Type == "TextField")
-                        {
-                            BumpSound.PlaySelect();
-                            UniversalAccessState.IsTypingMode = true;
-                            UniversalAccessState.TypingModeText = el.TextValue ?? "";
-                            UniversalAccessState.PendingTextTarget = el;
-                            TolkHelper.Speak(L10n.Get("Schreibmodus aktiviert. Tippe Text und drücke Enter.", "Typing mode activated. Type text and press Enter."), SpeechPriority.High);
-                            Event.current.Use();
-                            return;
                         }
                         else
                         {
@@ -849,15 +808,19 @@ namespace RimWorldAccess_UniversalPatcher
                     if (elements.Count > 0)
                     {
                         var el = elements[selectedIndex];
-                        if (el.Type == "Button" || el.Type == "FloatMenuOption" || el.Type == "ButtonImage" || el.Type == "Checkbox")
+                        if (el.Type == "Button" || el.Type == "FloatMenuOption" || el.Type == "ButtonImage" || el.Type == "Checkbox" || el.Type == "TextField")
                         {
                             BumpSound.PlaySelect();
-                            string actionTextDe = el.Type == "Checkbox" ? (el.IsChecked ? "deaktiviert" : "aktiviert") : "gedrückt";
-                            string actionTextEn = el.Type == "Checkbox" ? (el.IsChecked ? "deactivated" : "activated") : "pressed";
+                            string actionTextDe = el.Type == "Checkbox" ? (el.IsChecked ? "deaktiviert" : "aktiviert") : "ausgewählt";
+                            string actionTextEn = el.Type == "Checkbox" ? (el.IsChecked ? "deactivated" : "activated") : "selected";
+                            if (el.Type == "TextField") {
+                                actionTextDe = "Eingabefeld fokussiert. Bitte tippen.";
+                                actionTextEn = "Text field focused. Please type.";
+                            }
                             TolkHelper.Speak(
                                 L10n.Get(
-                                    string.Format("{0} wird {1}.", el.Text, actionTextDe),
-                                    string.Format("{0} is {1}.", el.Text, actionTextEn)
+                                    el.Type == "TextField" ? actionTextDe : string.Format("{0} wird {1}.", el.Text, actionTextDe),
+                                    el.Type == "TextField" ? actionTextEn : string.Format("{0} is {1}.", el.Text, actionTextEn)
                                 ),
                                 SpeechPriority.High
                             );
