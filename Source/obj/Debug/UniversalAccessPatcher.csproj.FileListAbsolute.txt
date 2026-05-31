@@ -1,0 +1,9 @@
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_UniversalPatcher\Source\obj\Debug\UniversalAccessPatcher.csproj.AssemblyReference.cache
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_UniversalPatcher\Source\obj\Debug\UniversalAccessPatcher.GeneratedMSBuildEditorConfig.editorconfig
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_UniversalPatcher\Source\obj\Debug\UniversalAccessPatcher.AssemblyInfoInputs.cache
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_UniversalPatcher\Source\obj\Debug\UniversalAccessPatcher.AssemblyInfo.cs
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_UniversalPatcher\Source\obj\Debug\UniversalAccessPatcher.csproj.CoreCompileInputs.cache
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_UniversalPatcher\Assemblies\UniversalAccessPatcher.dll
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_UniversalPatcher\Assemblies\UniversalAccessPatcher.pdb
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_UniversalPatcher\Source\obj\Debug\UniversalAccessPatcher.dll
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\RimWorldAccess_UniversalPatcher\Source\obj\Debug\UniversalAccessPatcher.pdb

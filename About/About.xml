@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>RimWorldAccess Universal Patcher (Deutsch/English)</name>
+  <author>AI Assistant</author>
+  <packageId>ai.rimworldaccess.universalpatcher</packageId>
+  <supportedVersions>
+    <li>1.4</li>
+    <li>1.5</li>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>
+GERMAN:
+Ein universeller Patcher, der versucht, andere Mods mit "RimWorldAccess" barrierefrei zu machen.
+Er hängt sich in Standard-UI-Elemente von RimWorld (wie Widgets.ButtonText und Widgets.Label) ein 
+und leitet diese Texte an den Tolk Screenreader weiter.
+
+ENGLISH:
+A universal patcher that attempts to make other mods accessible with "RimWorldAccess".
+It hooks into standard UI elements in RimWorld (like Widgets.ButtonText and Widgets.Label)
+and forwards these texts to the Tolk screen reader.
+  </description>
+  <modDependencies>
+    <li>
+      <packageId>brrainz.harmony</packageId>
+      <displayName>Harmony</displayName>
+      <steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl>
+    </li>
+    <li>
+      <packageId>shane12300.rimworldaccess</packageId>
+      <displayName>RimWorld Access</displayName>
+    </li>
+  </modDependencies>
+  <loadAfter>
+    <li>brrainz.harmony</li>
+    <li>shane12300.rimworldaccess</li>
+  </loadAfter>
+</ModMetaData>
